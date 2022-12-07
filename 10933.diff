@@ -1,0 +1,220 @@
+diff --git a/src/hotspot/share/code/nmethod.cpp b/src/hotspot/share/code/nmethod.cpp
+index 18542c5e7f64..df80ad53f71c 100644
+--- a/src/hotspot/share/code/nmethod.cpp
++++ b/src/hotspot/share/code/nmethod.cpp
+@@ -451,6 +451,42 @@ void nmethod::init_defaults() {
+ #endif
+ }
+ 
++#ifdef ASSERT
++class CheckForOopsClosure : public OopClosure {
++  bool _found_oop = false;
++ public:
++  virtual void do_oop(oop* o) { _found_oop = true; }
++  virtual void do_oop(narrowOop* o) { _found_oop = true; }
++  bool found_oop() { return _found_oop; }
++};
++class CheckForMetadataClosure : public MetadataClosure {
++  bool _found_metadata = false;
++  Metadata* _ignore = nullptr;
++ public:
++  CheckForMetadataClosure(Metadata* ignore) : _ignore(ignore) {}
++  virtual void do_metadata(Metadata* md) { if (md != _ignore) _found_metadata = true; }
++  bool found_metadata() { return _found_metadata; }
++};
++
++static void assert_no_oops_or_metadata(nmethod* nm) {
++  if (nm == nullptr) return;
++  assert(nm->oop_maps() == nullptr, "expectation");
++
++  CheckForOopsClosure cfo;
++  nm->oops_do(&cfo);
++  assert(!cfo.found_oop(), "no oops allowed");
++
++  // We allow an exception for the own Method, but require its class to be permanent.
++  Method* own_method = nm->method();
++  CheckForMetadataClosure cfm(/* ignore reference to own Method */ own_method);
++  nm->metadata_do(&cfm);
++  assert(!cfm.found_metadata(), "no metadata allowed");
++
++  assert(own_method->method_holder()->class_loader_data()->is_permanent_class_loader_data(),
++         "Method's class needs to be permanent");
++}
++#endif
++
+ nmethod* nmethod::new_native_nmethod(const methodHandle& method,
+   int compile_id,
+   CodeBuffer *code_buffer,
+@@ -474,14 +510,19 @@ nmethod* nmethod::new_native_nmethod(const methodHandle& method,
+     if (exception_handler != -1) {
+       offsets.set_value(CodeOffsets::Exceptions, exception_handler);
+     }
+-    nm = new (native_nmethod_size, CompLevel_none)
++
++    // MH intrinsics are dispatch stubs which are compatible with NonNMethod space.
++    // IsUnloadingBehaviour::is_unloading needs to handle them separately.
++    bool allow_NonNMethod_space = method->can_be_allocated_in_NonNMethod_space();
++    nm = new (native_nmethod_size, allow_NonNMethod_space)
+     nmethod(method(), compiler_none, native_nmethod_size,
+             compile_id, &offsets,
+             code_buffer, frame_size,
+             basic_lock_owner_sp_offset,
+             basic_lock_sp_offset,
+             oop_maps);
+-    NOT_PRODUCT(if (nm != NULL)  native_nmethod_stats.note_native_nmethod(nm));
++    DEBUG_ONLY( if (allow_NonNMethod_space) assert_no_oops_or_metadata(nm); )
++    NOT_PRODUCT(if (nm != NULL) native_nmethod_stats.note_native_nmethod(nm));
+   }
+ 
+   if (nm != NULL) {
+@@ -716,6 +757,14 @@ void* nmethod::operator new(size_t size, int nmethod_size, int comp_level) throw
+   return CodeCache::allocate(nmethod_size, CodeCache::get_code_blob_type(comp_level));
+ }
+ 
++void* nmethod::operator new(size_t size, int nmethod_size, bool allow_NonNMethod_space) throw () {
++  // Try MethodNonProfiled and MethodProfiled.
++  void* return_value = CodeCache::allocate(nmethod_size, CodeBlobType::MethodNonProfiled);
++  if (return_value != nullptr || !allow_NonNMethod_space) return return_value;
++  // Try NonNMethod or give up.
++  return CodeCache::allocate(nmethod_size, CodeBlobType::NonNMethod);
++}
++
+ nmethod::nmethod(
+   Method* method,
+   CompilerType type,
+diff --git a/src/hotspot/share/code/nmethod.hpp b/src/hotspot/share/code/nmethod.hpp
+index bd2af1053a00..d9b792e0ef61 100644
+--- a/src/hotspot/share/code/nmethod.hpp
++++ b/src/hotspot/share/code/nmethod.hpp
+@@ -298,6 +298,10 @@ class nmethod : public CompiledMethod {
+ 
+   // helper methods
+   void* operator new(size_t size, int nmethod_size, int comp_level) throw();
++  // For method handle intrinsics: Try MethodNonProfiled, MethodProfiled and NonNMethod.
++  // Attention: Only allow NonNMethod space for special nmethods which don't need to be
++  // findable by nmethod iterators! In particular, they must not contain oops!
++  void* operator new(size_t size, int nmethod_size, bool allow_NonNMethod_space) throw();
+ 
+   const char* reloc_string_for(u_char* begin, u_char* end);
+ 
+diff --git a/src/hotspot/share/gc/shared/gcBehaviours.cpp b/src/hotspot/share/gc/shared/gcBehaviours.cpp
+index d0a4eb79a402..3b5136f74f08 100644
+--- a/src/hotspot/share/gc/shared/gcBehaviours.cpp
++++ b/src/hotspot/share/gc/shared/gcBehaviours.cpp
+@@ -30,6 +30,11 @@
+ IsUnloadingBehaviour* IsUnloadingBehaviour::_current = NULL;
+ 
+ bool IsUnloadingBehaviour::is_unloading(CompiledMethod* cm) {
++  if (cm->method()->can_be_allocated_in_NonNMethod_space()) {
++    // When the nmethod is in NonNMethod space, we may reach here without IsUnloadingBehaviour.
++    // However, we only allow this for special methods which never get unloaded.
++    return false;
++  }
+   return _current->has_dead_oop(cm) || cm->as_nmethod()->is_cold();
+ }
+ 
+diff --git a/src/hotspot/share/oops/method.hpp b/src/hotspot/share/oops/method.hpp
+index 0ce9b768b53a..1fc28c86df39 100644
+--- a/src/hotspot/share/oops/method.hpp
++++ b/src/hotspot/share/oops/method.hpp
+@@ -722,7 +722,8 @@ class Method : public Metadata {
+   static methodHandle make_method_handle_intrinsic(vmIntrinsicID iid, // _invokeBasic, _linkToVirtual
+                                                    Symbol* signature, //anything at all
+                                                    TRAPS);
+-
++  // Some special methods don't need to be findable by nmethod iterators and are permanent.
++  bool can_be_allocated_in_NonNMethod_space() const { return is_method_handle_intrinsic(); }
+ 
+   // Continuation
+   inline bool is_continuation_enter_intrinsic() const;
+diff --git a/test/hotspot/jtreg/compiler/codecache/MHIntrinsicAllocFailureTest.java b/test/hotspot/jtreg/compiler/codecache/MHIntrinsicAllocFailureTest.java
+new file mode 100644
+index 000000000000..06fda8e2e916
+--- /dev/null
++++ b/test/hotspot/jtreg/compiler/codecache/MHIntrinsicAllocFailureTest.java
+@@ -0,0 +1,85 @@
++/*
++ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
++ * Copyright (c) 2022 SAP SE. All rights reserved.ights reserved.
++ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
++ *
++ * This code is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License version 2 only, as
++ * published by the Free Software Foundation.
++ *
++ * This code is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++ * version 2 for more details (a copy is included in the LICENSE file that
++ * accompanied this code).
++ *
++ * You should have received a copy of the GNU General Public License version
++ * 2 along with this work; if not, write to the Free Software Foundation,
++ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
++ *
++ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
++ * or visit www.oracle.com if you need additional information or have any
++ * questions.
++ */
++
++/*
++ * @test MHIntrinsicAllocFailureTest
++ * @bug 8295724
++ * @requires vm.compMode == "Xmixed"
++ * @requires vm.opt.TieredCompilation == null | vm.opt.TieredCompilation == true
++ * @summary test allocation failure of method handle intrinsic in profiled/non-profiled space
++ * @library /test/lib
++ * @modules java.base/jdk.internal.misc
++ *          java.management
++ *
++ * @build jdk.test.whitebox.WhiteBox
++ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
++ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
++ *                   -XX:+WhiteBoxAPI -XX:CompileCommand=compileonly,null::*
++ *                   -XX:ReservedCodeCacheSize=16m -XX:+SegmentedCodeCache
++ *                   compiler.codecache.MHIntrinsicAllocFailureTest
++ */
++
++package compiler.codecache;
++
++import jdk.test.lib.Asserts;
++import jdk.test.whitebox.WhiteBox;
++import jdk.test.whitebox.code.BlobType;
++
++import java.lang.management.MemoryPoolMXBean;
++
++public class MHIntrinsicAllocFailureTest {
++    private static final WhiteBox WHITE_BOX = WhiteBox.getWhiteBox();
++
++    private interface TestInterface {
++        int testMethod(int a, int b, Object c);
++    }
++
++    private static void fillCodeCacheSegment(BlobType type) {
++        // Fill with large blobs.
++        MemoryPoolMXBean bean = type.getMemoryPool();
++        int size = (int) (bean.getUsage().getMax() >> 7);
++        while (WHITE_BOX.allocateCodeBlob(size, type.id) != 0) {}
++        // Fill rest with minimal blobs.
++        while (WHITE_BOX.allocateCodeBlob(1, type.id) != 0) {}
++    }
++
++    public static void main(String[] args) {
++        // Lock compilation to be able to better control code cache space
++        WHITE_BOX.lockCompilation();
++        fillCodeCacheSegment(BlobType.MethodNonProfiled);
++        fillCodeCacheSegment(BlobType.MethodProfiled);
++        // JIT compilers should be off, now.
++        Asserts.assertNotEquals(WHITE_BOX.getCompilationActivityMode(), 1);
++        System.out.println("Code cache segments for non-profiled and profiled nmethods are full.");
++        // Generate and use a MH itrinsic. Should not trigger one of the following:
++        // - VirtualMachineError: Out of space in CodeCache for method handle intrinsic
++        // - InternalError: java.lang.NoSuchMethodException: no such method:
++        //   java.lang.invoke.MethodHandle.linkToStatic(int,int,Object,MemberName)int/invokeStatic
++        TestInterface add2ints = (a, b, c) -> a + b;
++        System.out.println("Result of lambda expression: " + add2ints.testMethod(1, 2, null));
++        // Let GC check the code cache.
++        WHITE_BOX.unlockCompilation();
++        WHITE_BOX.fullGC();
++    }
++}
