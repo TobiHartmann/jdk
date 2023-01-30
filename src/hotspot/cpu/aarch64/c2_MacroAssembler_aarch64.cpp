@@ -925,7 +925,7 @@ void C2_MacroAssembler::neon_compare(FloatRegister dst, BasicType bt, FloatRegis
       case BoolTest::eq: fcmeq(dst, size, src1, src2); break;
       case BoolTest::ne: {
         fcmeq(dst, size, src1, src2);
-        notr(dst, T16B, dst);
+        notr(dst, isQ ? T16B : T8B, dst);
         break;
       }
       case BoolTest::ge: fcmge(dst, size, src1, src2); break;
@@ -941,7 +941,7 @@ void C2_MacroAssembler::neon_compare(FloatRegister dst, BasicType bt, FloatRegis
       case BoolTest::eq: cmeq(dst, size, src1, src2); break;
       case BoolTest::ne: {
         cmeq(dst, size, src1, src2);
-        notr(dst, T16B, dst);
+        notr(dst, isQ ? T16B : T8B, dst);
         break;
       }
       case BoolTest::ge: cmge(dst, size, src1, src2); break;
@@ -952,6 +952,44 @@ void C2_MacroAssembler::neon_compare(FloatRegister dst, BasicType bt, FloatRegis
       case BoolTest::ugt: cmhi(dst, size, src1, src2); break;
       case BoolTest::ult: cmhi(dst, size, src2, src1); break;
       case BoolTest::ule: cmhs(dst, size, src2, src1); break;
+      default:
+        assert(false, "unsupported");
+        ShouldNotReachHere();
+    }
+  }
+}
+
+void C2_MacroAssembler::neon_compare_zero(FloatRegister dst, BasicType bt, FloatRegister src,
+                                          int cond, bool isQ) {
+  SIMD_Arrangement size = esize2arrangement((unsigned)type2aelembytes(bt), isQ);
+  if (bt == T_FLOAT || bt == T_DOUBLE) {
+    switch (cond) {
+      case BoolTest::eq: fcmeq(dst, size, src); break;
+      case BoolTest::ne: {
+        fcmeq(dst, size, src);
+        notr(dst, isQ ? T16B : T8B, dst);
+        break;
+      }
+      case BoolTest::ge: fcmge(dst, size, src); break;
+      case BoolTest::gt: fcmgt(dst, size, src); break;
+      case BoolTest::le: fcmle(dst, size, src); break;
+      case BoolTest::lt: fcmlt(dst, size, src); break;
+      default:
+        assert(false, "unsupported");
+        ShouldNotReachHere();
+    }
+  } else {
+    switch (cond) {
+      case BoolTest::eq: cmeq(dst, size, src); break;
+      case BoolTest::ne: {
+        cmeq(dst, size, src);
+        notr(dst, isQ ? T16B : T8B, dst);
+        break;
+      }
+      case BoolTest::ge: cmge(dst, size, src); break;
+      case BoolTest::gt: cmgt(dst, size, src); break;
+      case BoolTest::le: cmle(dst, size, src); break;
+      case BoolTest::lt: cmlt(dst, size, src); break;
       default:
         assert(false, "unsupported");
         ShouldNotReachHere();
