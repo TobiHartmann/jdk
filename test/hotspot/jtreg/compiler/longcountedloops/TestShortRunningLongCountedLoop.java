@@ -32,8 +32,6 @@ import java.util.Objects;
  * @bug 8342692
  * @summary C2: long counted loop/long range checks: don't create loop-nest for short running loops
  * @library /test/lib /
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run driver ${test.main.class}
  */
 
