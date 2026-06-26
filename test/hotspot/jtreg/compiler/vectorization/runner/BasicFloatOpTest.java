@@ -26,14 +26,8 @@
  * @summary Vectorization test on basic float operations
  * @library /test/lib /
  *
- * @build jdk.test.whitebox.WhiteBox
- *        compiler.vectorization.runner.VectorizationTestRunner
- *
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
- * @run main/othervm -Xbootclasspath/a:.
- *                   -XX:+UnlockDiagnosticVMOptions
- *                   -XX:+WhiteBoxAPI
- *                   compiler.vectorization.runner.BasicFloatOpTest
+ * @build compiler.vectorization.runner.VectorizationTestRunner
+ * @run driver ${test.main.class}
  *
  * @requires (os.simpleArch == "x64") | (os.simpleArch == "aarch64") | (os.simpleArch == "riscv64")
  * @requires vm.compiler2.enabled

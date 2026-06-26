@@ -26,15 +26,8 @@
  * @summary Vectorization test with small strip mining iterations
  * @library /test/lib /
  *
- * @build jdk.test.whitebox.WhiteBox
- *        compiler.vectorization.runner.VectorizationTestRunner
- *
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
- * @run main/othervm -Xbootclasspath/a:.
- *                   -XX:+UnlockDiagnosticVMOptions
- *                   -XX:+WhiteBoxAPI
- *                   -XX:LoopStripMiningIter=10
- *                   compiler.vectorization.runner.StripMinedLoopTest
+ * @build compiler.vectorization.runner.VectorizationTestRunner
+ * @run driver ${test.main.class} -XX:LoopStripMiningIter=10
  *
  * @requires vm.compiler2.enabled
  */

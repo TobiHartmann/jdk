@@ -26,14 +26,8 @@
  * @summary Vectorization test on array copy
  * @library /test/lib /
  *
- * @build jdk.test.whitebox.WhiteBox
- *        compiler.vectorization.runner.VectorizationTestRunner
- *
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
- * @run main/othervm -Xbootclasspath/a:.
- *                   -XX:+UnlockDiagnosticVMOptions
- *                   -XX:+WhiteBoxAPI
- *                   compiler.vectorization.runner.ArrayCopyTest
+ * @build compiler.vectorization.runner.VectorizationTestRunner
+ * @run driver ${test.main.class}
  *
  * @requires vm.compiler2.enabled
  */
