@@ -27,12 +27,10 @@
  * @test
  * @summary Vectorization test on basic double operations
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- * @run driver ${test.main.class}
- *
  * @requires (os.simpleArch == "x64") | (os.simpleArch == "aarch64") | (os.simpleArch == "riscv64")
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class}
  */
 
 package compiler.vectorization.runner;

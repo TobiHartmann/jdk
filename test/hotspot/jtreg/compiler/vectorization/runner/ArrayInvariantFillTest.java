@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2022, 2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,13 +26,11 @@
  * @test
  * @summary Vectorization test on array invariant fill
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- * @run driver ${test.main.class} -XX:-OptimizeFill
- * @run driver ${test.main.class} -XX:+OptimizeFill
- *
  * @requires (os.simpleArch == "x64") | (os.simpleArch == "aarch64") | (os.simpleArch == "riscv64")
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class} NoOptimizeFill
+ * @run driver ${test.main.class} OptimizeFill
  */
 
 package compiler.vectorization.runner;
@@ -55,6 +54,16 @@ public class ArrayInvariantFillTest extends VectorizationTestRunner {
         charInv = (char) ran.nextInt();
         floatInv = ran.nextFloat();
         doubleInv = ran.nextDouble();
+    }
+
+    // We must pass the flags directly to the test-VM, and not the driver vm in the @run above.
+    @Override
+    protected String[] testVMFlags(String[] args) {
+        return switch (args[0]) {
+            case "NoOptimizeFill" -> new String[]{"-XX:-OptimizeFill"};
+            case "OptimizeFill" -> new String[]{"-XX:+OptimizeFill"};
+            default -> { throw new RuntimeException("Test argument not recognized: " + args[0]); }
+        };
     }
 
     // ---------------- Simple Fill ----------------

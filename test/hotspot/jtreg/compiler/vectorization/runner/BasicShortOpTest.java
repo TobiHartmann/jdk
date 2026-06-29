@@ -27,11 +27,9 @@
  * @bug 8183390 8342095
  * @summary Vectorization test on basic short operations
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- * @run driver ${test.main.class}
- *
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class}
  */
 
 package compiler.vectorization.runner;

@@ -25,11 +25,9 @@
  * @test
  * @summary Vectorization test on array unsafe operations
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- * @run driver ${test.main.class}
- *
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class}
  */
 
 package compiler.vectorization.runner;

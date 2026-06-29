@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2022, 2023, Arm Limited. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -105,7 +106,7 @@ public class VectorizationTestRunner {
 
     // Override this to add extra flags.
     protected String[] testVMFlags(String[] args) {
-        return args; // by default, pass @run driver arguments to the test VM
+        return new String[0]; // by default no extra flags
     }
 
     private void verifyTestMethod(Method method) {

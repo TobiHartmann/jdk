@@ -26,11 +26,9 @@
  * @test
  * @summary Vectorization test on loops with live out nodes
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- * @run driver ${test.main.class}
- *
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class}
  */
 
 package compiler.vectorization.runner;

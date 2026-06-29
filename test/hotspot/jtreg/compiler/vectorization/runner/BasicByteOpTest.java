@@ -26,11 +26,9 @@
  * @test
  * @summary Vectorization test on basic byte operations
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- * @run driver ${test.main.class} -XX:CompileCommand=CompileOnly,compiler.vectorization.runner.BasicByteOpTest::* -XX:LoopUnrollLimit=1000
- *
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class}
  */
 
 package compiler.vectorization.runner;
@@ -54,6 +52,12 @@ public class BasicByteOpTest extends VectorizationTestRunner {
             b[i] = (byte) (i + 4);
             c[i] = (byte) -90;
         }
+    }
+
+    // We must pass the flags directly to the test-VM, and not the driver vm in the @run above.
+    @Override
+    protected String[] testVMFlags(String[] args) {
+        return new String[]{"-XX:CompileCommand=CompileOnly,compiler.vectorization.runner.BasicByteOpTest::*", "-XX:LoopUnrollLimit=1000"};
     }
 
     // ---------------- Arithmetic ----------------

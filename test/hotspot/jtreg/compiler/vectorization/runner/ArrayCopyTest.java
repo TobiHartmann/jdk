@@ -24,12 +24,10 @@
 /*
  * @test
  * @summary Vectorization test on array copy
+ * @requires vm.compiler2.enabled
  * @library /test/lib /
  *
- * @build compiler.vectorization.runner.VectorizationTestRunner
  * @run driver ${test.main.class}
- *
- * @requires vm.compiler2.enabled
  */
 
 package compiler.vectorization.runner;

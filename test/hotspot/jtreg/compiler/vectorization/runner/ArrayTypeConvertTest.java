@@ -27,17 +27,11 @@
  * @bug 8183390 8340010 8342095
  * @summary Vectorization test on array type conversions
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- *
  * @requires vm.compiler2.enabled
  *
  * @run driver ${test.main.class} nCOH_nAV
- *
  * @run driver ${test.main.class} nCOH_yAV
- *
  * @run driver ${test.main.class} yCOH_nAV
- *
  * @run driver ${test.main.class} yCOH_yAV
  */
 

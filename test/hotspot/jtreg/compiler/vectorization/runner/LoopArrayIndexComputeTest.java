@@ -26,19 +26,13 @@
  * @test
  * @summary Vectorization test on loop array index computation
  * @library /test/lib /
- *
- * @build compiler.vectorization.runner.VectorizationTestRunner
- *
- * @run driver ${test.main.class} nAV_ySAC
- *
- * @run driver ${test.main.class} yAV_ySAC
- *
- * @run driver ${test.main.class} nAV_nSAC
- *
- * @run driver ${test.main.class} yAV_nSAC
- *
  * @requires (os.simpleArch == "x64") | (os.simpleArch == "aarch64")
  * @requires vm.compiler2.enabled
+ *
+ * @run driver ${test.main.class} nAV_ySAC
+ * @run driver ${test.main.class} yAV_ySAC
+ * @run driver ${test.main.class} nAV_nSAC
+ * @run driver ${test.main.class} yAV_nSAC
  */
 
 package compiler.vectorization.runner;
