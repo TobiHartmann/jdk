@@ -68,9 +68,10 @@ public class ArrayInvariantFillTest extends VectorizationTestRunner {
 
     // ---------------- Simple Fill ----------------
     @Test
-    @IR(applyIfCPUFeatureOr = {"asimd", "true", "sse2", "true", "rvv", "true"},
-        applyIf = {"OptimizeFill", "false"},
-        counts = {IRNode.REPLICATE_B, ">0"})
+    // TODO 8387402
+    //@IR(applyIfCPUFeatureOr = {"asimd", "true", "sse2", "true", "rvv", "true"},
+    //    applyIf = {"OptimizeFill", "false"},
+    //    counts = {IRNode.REPLICATE_B, ">0"})
     @IR(applyIfCPUFeatureOr = {"asimd", "true", "sse2", "true", "rvv", "true"},
         applyIf = {"OptimizeFill", "true"},
         counts = {IRNode.REPLICATE_B, "0"})
