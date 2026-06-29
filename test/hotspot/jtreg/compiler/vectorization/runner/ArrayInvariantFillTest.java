@@ -62,7 +62,7 @@ public class ArrayInvariantFillTest extends VectorizationTestRunner {
         return switch (args[0]) {
             case "NoOptimizeFill" -> new String[]{"-XX:-OptimizeFill"};
             case "OptimizeFill" -> new String[]{"-XX:+OptimizeFill"};
-            default -> { throw new RuntimeException("Test argument not recognized: " + args[0]); }
+            default -> throw new RuntimeException("Test argument not recognized: " + args[0]);
         };
     }
 
