@@ -47,10 +47,10 @@ public class LoopArrayIndexComputeTest extends VectorizationTestRunner {
     @Override
     protected String[] testVMFlags(String[] args) {
         return switch (args[0]) {
-            case "nAV_ySAC" -> new String[]{"-XX:-AlignVector", "-XX:+UseAutoVectorizationSpeculativeAliasingChecks"};
-            case "yAV_ySAC" -> new String[]{"-XX:+AlignVector", "-XX:+UseAutoVectorizationSpeculativeAliasingChecks"};
-            case "nAV_nSAC" -> new String[]{"-XX:-AlignVector", "-XX:-UseAutoVectorizationSpeculativeAliasingChecks"};
-            case "yAV_nSAC" -> new String[]{"-XX:+AlignVector", "-XX:-UseAutoVectorizationSpeculativeAliasingChecks"};
+            case "nAV_ySAC" -> new String[]{"-XX:+UnlockDiagnosticVMOptions", "-XX:-AlignVector", "-XX:+UseAutoVectorizationSpeculativeAliasingChecks"};
+            case "yAV_ySAC" -> new String[]{"-XX:+UnlockDiagnosticVMOptions", "-XX:+AlignVector", "-XX:+UseAutoVectorizationSpeculativeAliasingChecks"};
+            case "nAV_nSAC" -> new String[]{"-XX:+UnlockDiagnosticVMOptions", "-XX:-AlignVector", "-XX:-UseAutoVectorizationSpeculativeAliasingChecks"};
+            case "yAV_nSAC" -> new String[]{"-XX:+UnlockDiagnosticVMOptions", "-XX:+AlignVector", "-XX:-UseAutoVectorizationSpeculativeAliasingChecks"};
             default -> { throw new RuntimeException("Test argument not recognized: " + args[0]); }
         };
     }
