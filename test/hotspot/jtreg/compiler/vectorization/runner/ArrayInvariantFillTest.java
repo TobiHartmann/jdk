@@ -56,13 +56,13 @@ public class ArrayInvariantFillTest extends VectorizationTestRunner {
         doubleInv = ran.nextDouble();
     }
 
-    // We must pass the flags directly to the test-VM, and not the driver vm in the @run above.
+    // We must pass the flags directly to the Test VM, and not the Driver VM in the @run above.
     @Override
     protected String[] testVMFlags(String[] args) {
         return switch (args[0]) {
             case "NoOptimizeFill" -> new String[]{"-XX:-OptimizeFill"};
             case "OptimizeFill" -> new String[]{"-XX:+OptimizeFill"};
-            default -> { throw new RuntimeException("Test argument not recognized: " + args[0]); }
+            default -> throw new RuntimeException("Test argument not recognized: " + args[0]);
         };
     }
 
