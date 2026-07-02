@@ -42,7 +42,6 @@ public class AllocationMergesTests {
         TestFramework framework = new TestFramework();
 
         Scenario scenario0 = new Scenario(0, "-XX:+UnlockDiagnosticVMOptions",
-                                             "-XX:-DisplayVMOutput",
                                              "-XX:+ReduceAllocationMerges",
                                              "-XX:+DeoptimizeALot",
                                              "-XX:+UseCompressedOops",
@@ -53,7 +52,6 @@ public class AllocationMergesTests {
                                              "-XX:CompileCommand=exclude,*::dummy*");
 
         Scenario scenario1 = new Scenario(2, "-XX:+UnlockDiagnosticVMOptions",
-                                             "-XX:-DisplayVMOutput",
                                              "-XX:+ReduceAllocationMerges",
                                              "-XX:+DeoptimizeALot",
                                              "-XX:-UseCompressedOops",
@@ -64,7 +62,6 @@ public class AllocationMergesTests {
                                              "-XX:CompileCommand=exclude,*::dummy*");
 
         Scenario scenario2 = new Scenario(3, "-XX:+UnlockDiagnosticVMOptions",
-                                             "-XX:-DisplayVMOutput",
                                              "-XX:+ReduceAllocationMerges",
                                              "-XX:+DeoptimizeALot",
                                              "-XX:+UseCompressedOops",
