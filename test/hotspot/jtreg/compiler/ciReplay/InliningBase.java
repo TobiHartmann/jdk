@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,12 +45,11 @@ public abstract class InliningBase extends DumpReplayBase {
 
     protected InliningBase(Class<?> testClass) {
         this.testClass = testClass;
-        commandLineNormal = new ArrayList<>(List.of("-XX:LogFile=" + LOG_FILE_NORMAL + "", "-XX:+LogCompilation",
-                                                                 "-XX:-DisplayVMOutput", "-XX:-TieredCompilation",
+        commandLineNormal = new ArrayList<>(List.of("-XX:LogFile=" + LOG_FILE_NORMAL + "", "-XX:+LogCompilation", "-XX:-TieredCompilation",
                                                                  "-XX:CompileCommand=exclude," + testClass.getName() + "::main",
                                                                  "-XX:CompileCommand=option," + testClass.getName() + "::test,bool,PrintInlining,true"));
         commandLineReplay = new String[]
-                {"-XX:LogFile=" + LOG_FILE_REPLAY, "-XX:+LogCompilation", "-XX:-DisplayVMOutput",
+                {"-XX:LogFile=" + LOG_FILE_REPLAY, "-XX:+LogCompilation",
                  "-XX:CompileCommand=option," + testClass.getName()  + "::test,bool,PrintInlining,true"};
     }
 
