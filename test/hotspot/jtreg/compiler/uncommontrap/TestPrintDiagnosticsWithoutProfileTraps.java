@@ -56,4 +56,3 @@ public class TestPrintDiagnosticsWithoutProfileTraps {
         System.out.println("passed");
     }
 }
-
