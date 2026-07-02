@@ -32,8 +32,6 @@
  *                   -XX:CompileCommand=compileonly,*::allocateInstance
  *                   -XX:CompileCommand=dontinline,*TestReduceAllocationAndNonExactAllocate*::*
  *                   -XX:+UnlockDiagnosticVMOptions
- *                   -XX:-DisplayVMOutput
- *                   -XX:+TraceReduceAllocationMerges
  *                   -XX:-TieredCompilation
  *                   -Xbatch
  *                   -Xcomp
