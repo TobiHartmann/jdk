@@ -23,36 +23,75 @@
 
 /*
  * @test
- * @bug 8392533
- * @summary Test that a holder null check is performed when storing to an empty flat field.
+ * @bug 8392533 8393322
+ * @summary Test null checks for field accesses with empty value classes.
  * @enablePreview
- * @requires vm.compiler1.enabled
+ * @library /test/lib
+ * @modules java.base/jdk.internal.vm.annotation
  * @run main ${test.main.class}
  * @run main/othervm -Xbatch -XX:TieredStopAtLevel=1 ${test.main.class}
  */
 
 package compiler.valhalla.valuetypes;
 
-public class TestEmptyStoreToNullHolder {
+import jdk.internal.vm.annotation.NullRestricted;
+import jdk.test.lib.Asserts;
+
+public class TestEmptyValueFieldNullChecks {
     static value class Empty { }
 
-    Empty field = new Empty();
+    static value class Holder {
+        @NullRestricted
+        Empty empty;
 
-    static void test(TestEmptyStoreToNullHolder holder) {
-        holder.field = null;
+        Holder() {
+            empty = new Empty();
+            super();
+        }
+    }
+
+    Empty empty;
+
+    @NullRestricted
+    Holder holder;
+
+    TestEmptyValueFieldNullChecks() {
+        empty = new Empty();
+        holder = new Holder();
+        super();
+    }
+
+// TODO null free empty store? More versions?
+// https://mach5.us.oracle.com/mdash/jobs/tobias.hartmann-jdk-20261002-0727-51208817?search=result.status%3A*
+
+    // An empty store emits no payload store but must null-check its holder
+    static void testNullableEmptyPutfield(TestEmptyValueFieldNullChecks holder) {
+        holder.empty = null;
+    }
+
+    // A recursively empty store emits no payload access but must null-check both operands
+    static void testPutfield(TestEmptyValueFieldNullChecks holder, Holder value) {
+        holder.holder = value;
+    }
+
+    // A recursively empty load emits no payload access but must null-check its holder
+    static Holder testGetfield(TestEmptyValueFieldNullChecks holder) {
+        return holder.holder;
     }
 
     public static void main(String[] args) {
-        TestEmptyStoreToNullHolder holder = new TestEmptyStoreToNullHolder();
+        TestEmptyValueFieldNullChecks outerHolder = new TestEmptyValueFieldNullChecks();
+        Holder innerHolder = new Holder();
         for (int i = 0; i < 20_000; i++) {
-            test(holder);
+            testNullableEmptyPutfield(outerHolder);
+            testPutfield(outerHolder, innerHolder);
+            Asserts.assertEquals(testGetfield(outerHolder), outerHolder.holder);
         }
-        try {
-            test(null);
-            throw new RuntimeException("No NullPointerException thrown!");
-        } catch (NullPointerException expected) {
-            // Expected
-        }
+
+        Asserts.assertThrows(NullPointerException.class, () -> testNullableEmptyPutfield(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testPutfield(null, innerHolder));
+        Asserts.assertThrows(NullPointerException.class, () -> testPutfield(outerHolder, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testGetfield(null));
     }
 }
 
