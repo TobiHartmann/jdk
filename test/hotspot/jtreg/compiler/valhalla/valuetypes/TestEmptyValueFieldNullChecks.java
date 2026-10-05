@@ -40,11 +40,22 @@ import jdk.test.lib.Asserts;
 public class TestEmptyValueFieldNullChecks {
     static value class Empty { }
 
-    static value class Holder {
+    // Recursively empty value class (only contains null marker)
+    static value class Holder1 {
+        Empty empty;
+
+        Holder1() {
+            empty = new Empty();
+            super();
+        }
+    }
+
+    // Same as Holder1 but with null-restricted empty field
+    static value class Holder2 {
         @NullRestricted
         Empty empty;
 
-        Holder() {
+        Holder2() {
             empty = new Empty();
             super();
         }
@@ -53,45 +64,124 @@ public class TestEmptyValueFieldNullChecks {
     Empty empty;
 
     @NullRestricted
-    Holder holder;
+    Empty emptyNullFree;
+
+    Holder1 holder1;
+
+    Holder2 holder2;
+
+    @NullRestricted
+    Holder1 holder1NullFree;
+
+    @NullRestricted
+    Holder2 holder2NullFree;
 
     TestEmptyValueFieldNullChecks() {
         empty = new Empty();
-        holder = new Holder();
+        emptyNullFree = new Empty();
+        holder1 = new Holder1();
+        holder2 = new Holder2();
+        holder1NullFree = new Holder1();
+        holder2NullFree = new Holder2();
         super();
     }
 
-// TODO null free empty store? More versions?
-// https://mach5.us.oracle.com/mdash/jobs/tobias.hartmann-jdk-20261002-0727-51208817?search=result.status%3A*
-
     // An empty store emits no payload store but must null-check its holder
-    static void testNullableEmptyPutfield(TestEmptyValueFieldNullChecks holder) {
-        holder.empty = null;
+    static void testEmptyStore(TestEmptyValueFieldNullChecks outerHolder, Empty value) {
+        outerHolder.empty = value;
     }
 
-    // A recursively empty store emits no payload access but must null-check both operands
-    static void testPutfield(TestEmptyValueFieldNullChecks holder, Holder value) {
-        holder.holder = value;
+    // An empty null-free store emits no payload store but must null-check both operands
+    static void testEmptyNullFreeStore(TestEmptyValueFieldNullChecks outerHolder, Empty value) {
+        outerHolder.emptyNullFree = value;
+    }
+
+    // A recursively empty store emits no payload access but must null-check its holder
+    static void testRecursivelyEmptyStore(TestEmptyValueFieldNullChecks outerHolder, Holder1 value) {
+        outerHolder.holder1 = value;
+    }
+
+    static void testRecursivelyEmptyStore2(TestEmptyValueFieldNullChecks outerHolder, Holder2 value) {
+        outerHolder.holder2 = value;
+    }
+
+    // A recursively null-free empty store emits no payload access but must null-check both operands
+    static void testRecursivelyEmptyNullFreeStore(TestEmptyValueFieldNullChecks outerHolder, Holder1 value) {
+        outerHolder.holder1NullFree = value;
+    }
+
+    static void testRecursivelyEmptyNullFreeStore2(TestEmptyValueFieldNullChecks outerHolder, Holder2 value) {
+        outerHolder.holder2NullFree = value;
+    }
+
+    // An empty load emits no payload access but must null-check its holder
+    static Empty testEmptyLoad(TestEmptyValueFieldNullChecks outerHolder) {
+        return outerHolder.empty;
+    }
+
+    // An empty null-free load emits no payload access but must null-check its holder
+    static Empty testEmptyNullFreeLoad(TestEmptyValueFieldNullChecks outerHolder) {
+        return outerHolder.emptyNullFree;
     }
 
     // A recursively empty load emits no payload access but must null-check its holder
-    static Holder testGetfield(TestEmptyValueFieldNullChecks holder) {
-        return holder.holder;
+    static Holder1 testRecursivelyEmptyLoad(TestEmptyValueFieldNullChecks outerHolder) {
+        return outerHolder.holder1;
+    }
+
+    static Holder2 testRecursivelyEmptyLoad2(TestEmptyValueFieldNullChecks outerHolder) {
+        return outerHolder.holder2;
+    }
+
+    // A recursively empty null-free load emits no payload access but must null-check its holder
+    static Holder1 testRecursivelyEmptyNullFreeLoad(TestEmptyValueFieldNullChecks outerHolder) {
+        return outerHolder.holder1NullFree;
+    }
+
+    static Holder2 testRecursivelyEmptyNullFreeLoad2(TestEmptyValueFieldNullChecks outerHolder) {
+        return outerHolder.holder2NullFree;
     }
 
     public static void main(String[] args) {
+        Empty empty = new Empty();
         TestEmptyValueFieldNullChecks outerHolder = new TestEmptyValueFieldNullChecks();
-        Holder innerHolder = new Holder();
+        Holder1 innerHolder = new Holder1();
+        Holder2 innerHolder2 = new Holder2();
         for (int i = 0; i < 20_000; i++) {
-            testNullableEmptyPutfield(outerHolder);
-            testPutfield(outerHolder, innerHolder);
-            Asserts.assertEquals(testGetfield(outerHolder), outerHolder.holder);
+            testEmptyStore(outerHolder, null);
+            testEmptyNullFreeStore(outerHolder, empty);
+            testRecursivelyEmptyStore(outerHolder, innerHolder);
+            testRecursivelyEmptyStore2(outerHolder, innerHolder2);
+            testRecursivelyEmptyNullFreeStore(outerHolder, innerHolder);
+            testRecursivelyEmptyNullFreeStore2(outerHolder, innerHolder2);
+            Asserts.assertEquals(testEmptyLoad(outerHolder), outerHolder.empty);
+            Asserts.assertEquals(testEmptyNullFreeLoad(outerHolder), outerHolder.emptyNullFree);
+            Asserts.assertEquals(testRecursivelyEmptyLoad(outerHolder), outerHolder.holder1);
+            Asserts.assertEquals(testRecursivelyEmptyLoad2(outerHolder), outerHolder.holder2);
+            Asserts.assertEquals(testRecursivelyEmptyNullFreeLoad(outerHolder), outerHolder.holder1NullFree);
+            Asserts.assertEquals(testRecursivelyEmptyNullFreeLoad2(outerHolder), outerHolder.holder2NullFree);
         }
 
-        Asserts.assertThrows(NullPointerException.class, () -> testNullableEmptyPutfield(null));
-        Asserts.assertThrows(NullPointerException.class, () -> testPutfield(null, innerHolder));
-        Asserts.assertThrows(NullPointerException.class, () -> testPutfield(outerHolder, null));
-        Asserts.assertThrows(NullPointerException.class, () -> testGetfield(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testEmptyStore(null, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testEmptyStore(null, empty));
+        Asserts.assertThrows(NullPointerException.class, () -> testEmptyNullFreeStore(null, empty));
+        Asserts.assertThrows(NullPointerException.class, () -> testEmptyNullFreeStore(outerHolder, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyStore(null, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyStore(null, innerHolder));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyStore2(null, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyStore2(null, innerHolder2));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeStore(null, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeStore(null, innerHolder));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeStore(outerHolder, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeStore2(null, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeStore2(null, innerHolder2));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeStore2(outerHolder, null));
+        Asserts.assertThrows(NullPointerException.class, () -> testEmptyLoad(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testEmptyNullFreeLoad(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyLoad(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyLoad2(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeLoad(null));
+        Asserts.assertThrows(NullPointerException.class, () -> testRecursivelyEmptyNullFreeLoad2(null));
     }
 }
 
